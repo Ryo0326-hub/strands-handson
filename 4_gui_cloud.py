@@ -1,4 +1,4 @@
-#lib
+# 必要なライブラリをインポート
 import os, asyncio, feedparser
 import streamlit as st
 from strands import Agent, tool
@@ -6,29 +6,34 @@ from strands import Agent, tool
 # Streamlitシークレットを環境変数に設定
 os.environ['AWS_ACCESS_KEY_ID'] = st.secrets['AWS_ACCESS_KEY_ID']
 os.environ['AWS_SECRET_ACCESS_KEY'] = st.secrets['AWS_SECRET_ACCESS_KEY']
-os.environ['AWS_DEFAULY_REGION'] = st.secrets['AWS_DEFAULT_REGION']
+os.environ['AWS_DEFAULT_REGION'] = st.secrets['AWS_DEFAULT_REGION']
 
-#ツール定義
+########## 以降は変更なし ##########
+
+# ツールを定義
 @tool
 def get_aws_updates(service_name: str) -> list:
-    #AWS What's new のRSSフィードをパース
-    feed = feedparser.parse("https://aws.amazon.com/about-aws/whats-new/recent/feed/")
+    # AWS What's NewのRSSフィードをパース
+    feed = feedparser.parse("https://aws.amazon.com/about-aws/whats-new/recent/feed/")    
     result = []
 
-    #フィードの各エントリをチェック
+    # フィードの各エントリをチェック
     for entry in feed.entries:
-        if service_name.lower() in entry.title.lower():
+        # 件名にサービス名が含まれているかチェック
+        title = entry.get("title", "")
+        if isinstance(title, str) and service_name.lower() in title.lower():
             result.append({
                 "published": entry.get("published", "N/A"),
                 "summary": entry.get("summary", "")
             })
-
-            #最大3件
+            
+            # 最大3件のエントリを取得
             if len(result) >= 3:
                 break
+
     return result
 
-#エージェント
+# エージェントを作成
 agent = Agent(
     model="arn:aws:bedrock:us-west-2:591570009439:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0",
     tools=[get_aws_updates]
